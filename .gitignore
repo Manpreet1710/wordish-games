@@ -1,0 +1,10 @@
+# .gitignore for Wordora
+node_modules/
+.env*
+.env.local
+.env
+mongodb_cred.txt
+.netlify/
+*.log
+.DS_Store
+

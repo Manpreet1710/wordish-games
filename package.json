@@ -1,0 +1,39 @@
+{
+  "name": "wordora",
+  "version": "1.0.0",
+  "description": "Wordora — One word. Six tries. Every day.",
+  "main": "index.js",
+  "scripts": {
+    "dev": "netlify dev",
+    "build": "echo 'No build step for vanilla HTML/CSS/JS'",
+    "test": "node --experimental-vm-modules node_modules/.bin/jest --testPathPattern=tests/",
+    "test:evaluate": "node --experimental-vm-modules node_modules/.bin/jest tests/evaluate.test.js --verbose",
+    "test:puzzle": "node --experimental-vm-modules node_modules/.bin/jest tests/puzzle.test.js --verbose",
+    "test:storage": "node --experimental-vm-modules node_modules/.bin/jest tests/storage.test.js --verbose",
+    "test:api": "node --experimental-vm-modules node_modules/.bin/jest tests/api.test.js --verbose",
+    "validate-words": "node scripts/validate-words.js",
+    "seed-db": "node scripts/seed-db.js",
+    "lint": "eslint functions/ js/ scripts/ tests/ --ext .js"
+  },
+  "keywords": ["wordle", "word-game", "daily-puzzle", "wordora"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "mongodb": "^6.3.0",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "@netlify/functions": "^2.6.0",
+    "eslint": "^8.57.0",
+    "jest": "^29.7.0",
+    "netlify-cli": "^17.0.0",
+    "node-fetch": "^3.3.2"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "transform": {}
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light dark" />
+
+  <!-- ── SEO ────────────────────────────────────────────────── -->
+  <title>Wordora — One Word. Six Tries. Every Day.</title>
+  <meta name="description" content="Play Wordora — the free daily word-guessing game. Guess the 5-letter word in 6 attempts. A new puzzle drops every day at midnight UTC." />
+  <meta name="robots" content="index, follow" />
+
+  <!-- Canonical URL — update to production domain when known -->
+  <link rel="canonical" href="https://wordora.netlify.app/" />
+
+  <!-- ── Open Graph ──────────────────────────────────────────── -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://wordora.netlify.app/" />
+  <meta property="og:title" content="Wordora — One Word. Six Tries. Every Day." />
+  <meta property="og:description" content="A free daily word-guessing game. Guess the 5-letter word in 6 attempts. New puzzle every day." />
+  <meta property="og:image" content="https://wordora.netlify.app/og-image.png" />
+  <meta property="og:locale" content="en_US" />
+  <meta property="og:site_name" content="Wordora" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Wordora — One Word. Six Tries. Every Day." />
+  <meta name="twitter:description" content="A free daily word-guessing game. New puzzle every day at midnight UTC." />
+  <meta name="twitter:image" content="https://wordora.netlify.app/og-image.png" />
+
+  <!-- ── Fonts & Styles ─────────────────────────────────────── -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="/css/style.css" />
+
+  <!-- Favicon (inline SVG for simplicity) -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%23538d4e'/><text x='16' y='23' text-anchor='middle' font-family='Arial' font-weight='900' font-size='20' fill='white'>W</text></svg>" />
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%23538d4e'/><text x='16' y='23' text-anchor='middle' font-family='Arial' font-weight='900' font-size='20' fill='white'>W</text></svg>" />
+
+  <!-- Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Wordora",
+    "description": "A free daily five-letter word guessing game. Six tries. Every day.",
+    "url": "https://wordora.netlify.app/",
+    "applicationCategory": "Game",
+    "operatingSystem": "Any",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    }
+  }
+  </script>
+</head>
+
+<body>
+  <!-- ──────────────────────────────────────────────────────────
+       HEADER
+  ─────────────────────────────────────────────────────────── -->
+  <header id="header" role="banner">
+    <div class="header-inner">
+      <a href="/" class="header-logo" aria-label="Wordora — Home">
+        <div class="logo-mark" aria-hidden="true">W</div>
+        <span class="logo-text">Wordora</span>
+      </a>
+
+      <!-- Header center: Puzzle number & Calendar date selector -->
+      <div class="header-center">
+        <span id="puzzle-number" class="puzzle-badge" aria-label="Current puzzle number">Puzzle #1</span>
+        
+        <div class="calendar-wrapper">
+          <button id="btn-date-picker" class="date-picker-btn" aria-haspopup="dialog" aria-expanded="false" aria-label="Select puzzle date">
+            <span class="calendar-icon" aria-hidden="true">📅</span>
+            <span id="date-display">Today</span>
+            <svg class="chevron-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+
+          <!-- Calendar Popover -->
+          <div id="calendar-popover" class="calendar-popover" role="dialog" aria-modal="false" aria-label="Select puzzle date calendar" hidden>
+            <div class="cal-header">
+              <button id="cal-prev-month" class="cal-nav-btn" aria-label="Previous month" type="button">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+              </button>
+              <div id="cal-month-year" class="cal-month-year" aria-live="polite">October 2026</div>
+              <button id="cal-next-month" class="cal-nav-btn" aria-label="Next month" type="button">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
+            </div>
+
+            <div class="cal-weekdays" role="row" aria-hidden="true">
+              <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+            </div>
+
+            <div id="cal-grid" class="cal-grid" role="grid" aria-label="Days of the month">
+              <!-- Rendered dynamically by calendar.js -->
+            </div>
+
+            <div class="cal-footer">
+              <button id="cal-jump-today" class="cal-jump-today-btn" type="button">Jump to today</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <nav class="header-actions" aria-label="Game controls">
+        <button id="btn-help" class="icon-btn" aria-label="How to play" title="How to play">
+          <!-- Help icon -->
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+        </button>
+
+        <button id="btn-stats" class="icon-btn" aria-label="Statistics" title="Statistics">
+          <!-- Stats icon -->
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <line x1="18" y1="20" x2="18" y2="10"/>
+            <line x1="12" y1="20" x2="12" y2="4"/>
+            <line x1="6"  y1="20" x2="6"  y2="14"/>
+          </svg>
+        </button>
+
+        <button id="btn-settings" class="icon-btn" aria-label="Settings" title="Settings">
+          <!-- Settings icon -->
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ──────────────────────────────────────────────────────────
+       PREVIEW MODE BANNER
+  ─────────────────────────────────────────────────────────── -->
+  <div id="preview-banner" class="preview-banner" role="status" aria-live="polite" hidden>
+    <div class="preview-banner-inner">
+      <div class="preview-badge">Preview Mode</div>
+      <span class="preview-text">Playing puzzle for <strong id="preview-date-label">Oct 15, 2026</strong>. Official stats and streak are not affected.</span>
+      <button id="btn-return-today" class="btn-return-today" type="button">Return to today</button>
+    </div>
+  </div>
+
+  <!-- ──────────────────────────────────────────────────────────
+       TOAST NOTIFICATIONS
+  ─────────────────────────────────────────────────────────── -->
+  <div id="toast-container" role="status" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- ──────────────────────────────────────────────────────────
+       MAIN GAME
+  ─────────────────────────────────────────────────────────── -->
+  <main id="app" role="main">
+    <!-- Ad zone: top (reserved, not shown until AdSense approved) -->
+    <div class="ad-zone" id="ad-top" aria-hidden="true"></div>
+
+    <!-- Game Board -->
+    <section id="board-container" aria-label="Guess board">
+      <div id="board" role="grid" aria-label="Wordora game board" aria-describedby="board-description">
+        <!-- 30 tiles rendered by app.js -->
+      </div>
+      <p id="board-description" class="sr-only">
+        Six rows of five letter tiles. Enter a five-letter word using the keyboard below or your physical keyboard.
+      </p>
+    </section>
+
+    <!-- Keyboard -->
+    <section id="keyboard-container" aria-label="On-screen keyboard">
+      <div id="keyboard" role="group" aria-label="Letter keys">
+        <!-- Rendered by app.js -->
+      </div>
+    </section>
+
+    <!-- Ad zone: bottom (reserved) -->
+    <div class="ad-zone" id="ad-bottom" aria-hidden="true"></div>
+  </main>
+
+  <!-- ──────────────────────────────────────────────────────────
+       HELP DIALOG
+  ─────────────────────────────────────────────────────────── -->
+  <div id="dialog-help" class="dialog-overlay" role="dialog" aria-modal="true" aria-labelledby="dialog-help-title" hidden aria-hidden="true">
+    <div class="dialog">
+      <div class="dialog-header">
+        <h2 id="dialog-help-title" class="dialog-title">How To Play</h2>
+        <button class="dialog-close" data-close-dialog="dialog-help" aria-label="Close help dialog">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="dialog-body how-to-play">
+        <h3>Guess the Wordora in 6 tries.</h3>
+        <p>Each guess must be a valid 5-letter word. Press Enter to submit.</p>
+        <p>After each guess, the tiles will change colour to show how close your guess was to the word.</p>
+
+        <hr />
+
+        <h3>Examples</h3>
+
+        <div class="example-row" aria-label="Example: WEARY — W is correct">
+          <div class="example-tile" data-state="correct" aria-label="W — correct position">W</div>
+          <div class="example-tile" aria-label="E">E</div>
+          <div class="example-tile" aria-label="A">A</div>
+          <div class="example-tile" aria-label="R">R</div>
+          <div class="example-tile" aria-label="Y">Y</div>
+        </div>
+        <p class="example-label"><strong>W</strong> is in the word and in the correct spot.</p>
+
+        <div class="example-row" aria-label="Example: PILOT — I is present but wrong position">
+          <div class="example-tile" aria-label="P">P</div>
+          <div class="example-tile" data-state="present" aria-label="I — wrong position">I</div>
+          <div class="example-tile" aria-label="L">L</div>
+          <div class="example-tile" aria-label="O">O</div>
+          <div class="example-tile" aria-label="T">T</div>
+        </div>
+        <p class="example-label"><strong>I</strong> is in the word but in the wrong spot.</p>
+
+        <div class="example-row" aria-label="Example: VAGUE — U is not in the word">
+          <div class="example-tile" aria-label="V">V</div>
+          <div class="example-tile" aria-label="A">A</div>
+          <div class="example-tile" aria-label="G">G</div>
+          <div class="example-tile" data-state="absent" aria-label="U — not in word">U</div>
+          <div class="example-tile" aria-label="E">E</div>
+        </div>
+        <p class="example-label"><strong>U</strong> is not in the word in any spot.</p>
+
+        <hr />
+
+        <p>A new Wordora is available every day at <strong>midnight UTC</strong>. Come back tomorrow!</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ──────────────────────────────────────────────────────────
+       STATISTICS DIALOG
+  ─────────────────────────────────────────────────────────── -->
+  <div id="dialog-stats" class="dialog-overlay" role="dialog" aria-modal="true" aria-labelledby="dialog-stats-title" hidden aria-hidden="true">
+    <div class="dialog">
+      <div class="dialog-header">
+        <h2 id="dialog-stats-title" class="dialog-title">Statistics</h2>
+        <button class="dialog-close" data-close-dialog="dialog-stats" aria-label="Close statistics dialog">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="dialog-body">
+
+        <!-- Game result banner (shown after win/loss) -->
+        <div id="game-result-banner" class="game-result-banner" hidden>
+          <div id="result-emoji" class="game-result-emoji" aria-hidden="true">🎉</div>
+          <div id="result-message" class="game-result-message"></div>
+          <div id="result-attempts" class="game-result-attempts"></div>
+        </div>
+
+        <!-- Local stats summary -->
+        <div class="stats-grid" aria-label="Your statistics">
+          <div class="stat-item">
+            <span id="stat-played" class="stat-value" aria-label="Games played">0</span>
+            <span class="stat-label">Played</span>
+          </div>
+          <div class="stat-item">
+            <span id="stat-win-pct" class="stat-value" aria-label="Win percentage">0</span>
+            <span class="stat-label">Win&nbsp;%</span>
+          </div>
+          <div class="stat-item">
+            <span id="stat-streak" class="stat-value" aria-label="Current streak">0</span>
+            <span class="stat-label">Current Streak</span>
+          </div>
+          <div class="stat-item">
+            <span id="stat-max-streak" class="stat-value" aria-label="Max streak">0</span>
+            <span class="stat-label">Max Streak</span>
+          </div>
+        </div>
+
+        <!-- Guess distribution -->
+        <p class="stats-section-title">Guess Distribution</p>
+        <div class="guess-distribution" role="list" aria-label="Guess distribution">
+          <!-- Bars for attempts 1-6 -->
+          <div class="distribution-row" role="listitem">
+            <span class="distribution-label" aria-hidden="true">1</span>
+            <div class="distribution-bar-wrap">
+              <div id="dist-bar-1" class="distribution-bar" style="width:7%">
+                <span id="dist-count-1">0</span>
+              </div>
+            </div>
+          </div>
+          <div class="distribution-row" role="listitem">
+            <span class="distribution-label" aria-hidden="true">2</span>
+            <div class="distribution-bar-wrap">
+              <div id="dist-bar-2" class="distribution-bar" style="width:7%">
+                <span id="dist-count-2">0</span>
+              </div>
+            </div>
+          </div>
+          <div class="distribution-row" role="listitem">
+            <span class="distribution-label" aria-hidden="true">3</span>
+            <div class="distribution-bar-wrap">
+              <div id="dist-bar-3" class="distribution-bar" style="width:7%">
+                <span id="dist-count-3">0</span>
+              </div>
+            </div>
+          </div>
+          <div class="distribution-row" role="listitem">
+            <span class="distribution-label" aria-hidden="true">4</span>
+            <div class="distribution-bar-wrap">
+              <div id="dist-bar-4" class="distribution-bar" style="width:7%">
+                <span id="dist-count-4">0</span>
+              </div>
+            </div>
+          </div>
+          <div class="distribution-row" role="listitem">
+            <span class="distribution-label" aria-hidden="true">5</span>
+            <div class="distribution-bar-wrap">
+              <div id="dist-bar-5" class="distribution-bar" style="width:7%">
+                <span id="dist-count-5">0</span>
+              </div>
+            </div>
+          </div>
+          <div class="distribution-row" role="listitem">
+            <span class="distribution-label" aria-hidden="true">6</span>
+            <div class="distribution-bar-wrap">
+              <div id="dist-bar-6" class="distribution-bar" style="width:7%">
+                <span id="dist-count-6">0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Share preview (populated after game) -->
+        <div id="share-preview" class="share-preview hidden" aria-label="Share text preview"></div>
+
+        <!-- Footer: countdown + share -->
+        <div class="stats-footer">
+          <div class="next-puzzle-block">
+            <p class="next-puzzle-label">Next Wordora</p>
+            <p id="countdown" class="countdown" aria-label="Time until next puzzle" aria-live="polite">--:--:--</p>
+          </div>
+          <button id="share-btn" class="share-btn" aria-label="Share your result">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+            </svg>
+            Share
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ──────────────────────────────────────────────────────────
+       SETTINGS DIALOG
+  ─────────────────────────────────────────────────────────── -->
+  <div id="dialog-settings" class="dialog-overlay" role="dialog" aria-modal="true" aria-labelledby="dialog-settings-title" hidden aria-hidden="true">
+    <div class="dialog">
+      <div class="dialog-header">
+        <h2 id="dialog-settings-title" class="dialog-title">Settings</h2>
+        <button class="dialog-close" data-close-dialog="dialog-settings" aria-label="Close settings dialog">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="dialog-body">
+        <div class="settings-list" role="list">
+          <div class="setting-item" role="listitem">
+            <div class="setting-info">
+              <p class="setting-label">Dark Mode</p>
+              <p class="setting-desc">Switch to a dark colour scheme</p>
+            </div>
+            <label class="toggle" aria-label="Toggle dark mode">
+              <input type="checkbox" id="toggle-dark-mode" role="switch" aria-checked="false" />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-item" role="listitem">
+            <div class="setting-info">
+              <p class="setting-label">Reduced Motion</p>
+              <p class="setting-desc">Minimise animations and transitions</p>
+            </div>
+            <label class="toggle" aria-label="Toggle reduced motion">
+              <input type="checkbox" id="toggle-reduced-motion" role="switch" aria-checked="false" />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ──────────────────────────────────────────────────────────
+       SEO LANDING CONTENT (below game, semantic + helpful)
+  ─────────────────────────────────────────────────────────── -->
+  <section id="landing-content" aria-label="About Wordora">
+
+    <div class="landing-section">
+      <h2>What is Wordora?</h2>
+      <p>
+        Wordora is a free daily word-guessing game inspired by classic word puzzles.
+        Each day, a new 5-letter mystery word is revealed. You get six chances to guess it.
+        After each guess, the tiles change colour to guide you closer to the answer.
+      </p>
+      <p>
+        <strong>Green</strong> means the letter is correct and in the right position.
+        <strong>Yellow</strong> means the letter is in the word but in the wrong place.
+        <strong>Grey</strong> means the letter isn't in the word at all.
+      </p>
+    </div>
+
+    <div class="landing-section">
+      <h2>Tips &amp; Strategies</h2>
+      <p>
+        Start with a word that covers common vowels and consonants — words like CRANE, STARE, or AUDIO are great openers.
+        Pay attention to yellow tiles: the letter is in the word, just not where you put it.
+        Use your remaining attempts to narrow down vowel positions before committing.
+      </p>
+    </div>
+
+    <div class="landing-section" itemscope itemtype="https://schema.org/FAQPage">
+      <h2>Frequently Asked Questions</h2>
+
+      <div class="faq-item" itemprop="mainEntity" itemscope itemtype="https://schema.org/Question">
+        <h3 itemprop="name">How often does the puzzle change?</h3>
+        <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+          <p itemprop="text">
+            A new Wordora puzzle is available every day at midnight UTC. The same puzzle is shared with all players worldwide on the same calendar day.
+          </p>
+        </div>
+      </div>
+
+      <div class="faq-item" itemprop="mainEntity" itemscope itemtype="https://schema.org/Question">
+        <h3 itemprop="name">Can I play previous puzzles?</h3>
+        <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+          <p itemprop="text">
+            Currently, Wordora offers one puzzle per day. Previous puzzles are not available to replay, which keeps the community sharing the same experience each day.
+          </p>
+        </div>
+      </div>
+
+      <div class="faq-item" itemprop="mainEntity" itemscope itemtype="https://schema.org/Question">
+        <h3 itemprop="name">Is my progress saved?</h3>
+        <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+          <p itemprop="text">
+            Yes — your current game progress and statistics are saved in your browser. If you refresh the page, your guesses will be restored. Progress is stored locally and is not synced between devices.
+          </p>
+        </div>
+      </div>
+
+      <div class="faq-item" itemprop="mainEntity" itemscope itemtype="https://schema.org/Question">
+        <h3 itemprop="name">What counts as a valid guess?</h3>
+        <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+          <p itemprop="text">
+            Your guess must be an existing 5-letter English word from our approved word list. Proper nouns, abbreviations, and random letter strings are not accepted.
+          </p>
+        </div>
+      </div>
+
+      <div class="faq-item" itemprop="mainEntity" itemscope itemtype="https://schema.org/Question">
+        <h3 itemprop="name">How does the streak work?</h3>
+        <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+          <p itemprop="text">
+            Your streak increments each consecutive day you solve the puzzle. Missing a day resets your current streak to zero, but your maximum streak is preserved.
+          </p>
+        </div>
+      </div>
+
+      <div class="faq-item" itemprop="mainEntity" itemscope itemtype="https://schema.org/Question">
+        <h3 itemprop="name">Is Wordora free?</h3>
+        <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+          <p itemprop="text">
+            Wordora is completely free to play. No account, download, or payment required.
+          </p>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ──────────────────────────────────────────────────────────
+       FOOTER
+  ─────────────────────────────────────────────────────────── -->
+  <footer role="contentinfo">
+    <p>
+      &copy; <span id="year"></span> Wordora &mdash;
+      <a href="#" onclick="event.preventDefault(); document.getElementById('dialog-help').removeAttribute('hidden'); document.getElementById('dialog-help').classList.add('open'); return false;">How to Play</a>
+      &mdash; Made with ♥
+    </p>
+  </footer>
+
+  <!-- ──────────────────────────────────────────────────────────
+       SCRIPTS
+  ─────────────────────────────────────────────────────────── -->
+  <script>
+    // Set footer year
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // Apply stored theme before JS loads to prevent flash
+    (function() {
+      try {
+        const store = JSON.parse(localStorage.getItem('wordora_v1') || '{}');
+        if (store.settings?.darkMode) {
+          document.documentElement.dataset.theme = 'dark';
+        }
+        if (store.settings?.reducedMotion) {
+          document.documentElement.dataset.reducedMotion = 'true';
+        }
+      } catch(e) {}
+    })();
+  </script>
+
+  <!-- Main app module -->
+  <script type="module" src="/js/app.js"></script>
+</body>
+</html>

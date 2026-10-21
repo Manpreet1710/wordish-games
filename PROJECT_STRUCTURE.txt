@@ -1,0 +1,310 @@
+================================================================================
+  WORDORA — PROJECT WORKING STRUCTURE
+  (Team ke liye summary: game kaise kaam karta hai)
+  Last updated: 2026-10-21
+================================================================================
+
+Wordora ek daily word game hai (Wordle jaisa): har din ek 5-letter word,
+6 tries. Pure duniya mein sabko ek din mein same puzzle milta hai.
+
+Tech stack:
+  - Frontend : Plain HTML / CSS / JavaScript (koi framework ya build step nahi)
+  - Backend  : Netlify Functions (Node.js serverless functions)
+  - Database : MongoDB Atlas
+  - Hosting  : Netlify
+
+
+--------------------------------------------------------------------------------
+1. FOLDER STRUCTURE
+--------------------------------------------------------------------------------
+
+  index.html              Poora page (header, board, keyboard, dialogs)
+  css/style.css           Saari styling
+  js/                     Frontend code (browser mein chalta hai)
+    app.js                Main controller: game start, guess bhejna, date switch
+    game.js               Date / puzzle number helpers, countdown, evaluate logic
+    api.js                Server (Netlify Functions) ko call karne wala code
+    calendar.js           Header ka calendar dropdown (purane puzzles khelna)
+    storage.js            Browser localStorage: progress, stats, settings, sessionId
+    ui.js                 Board, tiles, keyboard, toast render karna
+    dialogs.js            Help / Stats / Settings popups + next puzzle countdown
+    share.js              Result share karna (emoji grid)
+
+  functions/              Backend (Netlify Functions)
+    get-puzzle.js         Aaj ka puzzle number + date deta hai (answer NAHI)
+    submit-guess.js       Guess check karta hai, result deta hai
+    get-stats.js          Aaj ke global stats (kitne logon ne khela/jeeta)
+    publish-puzzle.js     Daily CRON job (rozana 00:00 UTC)
+    _shared/
+      words.js            Word list load + "aaj ka answer kya hai" logic
+      evaluate.js         Guess vs answer compare (green / yellow / grey)
+      db.js               MongoDB connection + indexes
+      rateLimiter.js      Spam rokna: 1 IP se 10 minute mein max 30 guesses
+      time.js             Trusted time: internet se asli time (system clock nahi)
+      puzzles.js          Answer schedule: DB se answer, aage ke din schedule karna
+
+  data/
+    answers.js            ANSWERS: words ka POOL jisme se scheduler chunta hai (783)
+    valid-guesses.js      VALID_GUESSES: extra words jo guess mein allowed hain
+
+  scripts/
+    seed-db.js            Indexes + purane din backfill + agle 30 din schedule
+    validate-words.js     Word lists check karta hai (deploy se pehle chalao)
+
+  tests/                  Jest tests
+  netlify.toml            Netlify config: functions, cron schedule, headers
+  .env.local              Local secrets (MONGODB_URI etc.), git mein NAHI jaata
+
+
+--------------------------------------------------------------------------------
+2. ROZANA WORD KAISE BADALTA HAI  (sabse important part)
+--------------------------------------------------------------------------------
+
+Do alag cheezein hain:
+
+  (A) PUZZLE NUMBER: formula se (DB nahi)
+      Epoch = 2024-01-01 (UTC) -> Puzzle #1
+      Puzzle number = (aaj ki UTC date - 2024-01-01 ke din) + 1
+      Example: 2026-10-21 -> Puzzle #1025
+      Code: functions/_shared/words.js -> getPuzzleNumberForDate()
+      Ye sirf calendar ka hisaab hai, kabhi fail nahi hota.
+
+  (B) ANSWER: MongoDB "puzzles" collection se (source of truth)
+      Har puzzle number ka answer PEHLE SE (30 din aage) DB mein likha
+      hota hai. Ek baar likha gaya answer kabhi nahi badalta.
+      Code: functions/_shared/puzzles.js -> resolveAnswer()
+
+  Naya din UTC midnight par = India mein subah 5:30 AM IST.
+  Answer kabhi browser ko nahi bheja jaata (game khatam hone tak).
+
+  Naye din ka word kaise chuna jaata hai (scheduleUpcoming):
+    1. data/answers.js ke words mein se jo KABHI use nahi hua, wo pehle
+       (list order mein)
+    2. Sab use ho chuke hon to jo SABSE PEHLE use hua tha (least recently
+       used), taaki repeat jitna ho sake utna door ho
+    3. Aage ke 30 din mein koi word repeat nahi hota
+
+  Purane din (2024-01-01 se migration tak):
+    Purane formula ANSWERS[(n-1) % 783] se DB mein backfill kiye gaye,
+    taaki jo word players ne dekha tha wahi rahe (source: 'legacy').
+    Note: list 783 words ki thi, isliye 2026-02-22 (#784) se purane
+    system mein words repeat ho rahe the. Naye system mein naye words add
+    karoge to wo pehle chune jaayenge.
+
+  Fallback: MongoDB down ho ya kisi din ka record na mile to purana
+  formula use hota hai (log mein error aata hai). Words add karne ke baad
+  ye fallback word DB wale word se alag ho sakta hai, isliye DB down hona
+  "degraded mode" hai.
+
+  NAYE WORDS ADD KARNA:
+    1. data/answers.js mein words list ke END mein add karo
+       (5 letters, UPPERCASE, no duplicates). Beech mein insert / delete /
+       reorder MAT karo (fallback formula order par depend karta hai)
+    2. Jo words sirf guess mein allowed chahiye -> data/valid-guesses.js
+    3. npm run validate-words
+    4. Deploy karo. Agle cron run se naye words schedule hone lagenge
+       (30 din baad wale din se, kyunki agle 30 din pehle se fix hain)
+    Purane / aaj ke / already-scheduled answers par koi asar nahi padta.
+
+  KISI DIN KA WORD MANUALLY BADALNA:
+    MongoDB mein puzzles collection ka us puzzleNumber ka "answer" field
+    edit karo. Sirf FUTURE din (kam se kam 1 din aage) edit karo. Aaj ya
+    purane din ka word badla to jo log khel chuke hain unka result galat
+    ho jayega. Word data/valid-guesses.js / answers.js mein hona chahiye.
+
+
+--------------------------------------------------------------------------------
+3. CRON JOB (publish-puzzle)
+--------------------------------------------------------------------------------
+
+  Kab chalta hai : Roz 00:00 UTC = 05:30 AM IST
+                   (netlify.toml -> [functions."publish-puzzle"] schedule = "0 0 * * *")
+  Kahan          : Sirf deployed Netlify site par. Local (npm run dev) par
+                   apne aap nahi chalta.
+
+  Kya karta hai (har step dobara chalana safe hai):
+    1. Aaj ki date aur puzzle number nikalta hai (trusted time se)
+    2. Koi purana din DB mein missing ho to legacy formula se backfill
+       (self-healing: naye DB par migration bhool gaye to bhi theek)
+    3. Agle 30 din (SCHEDULE_AHEAD_DAYS) ke answers schedule karta hai
+    4. Aaj ke puzzle ko published: true mark karta hai
+    5. Never-used words 60 se kam bachen to log mein WARNING deta hai
+       -> matlab answers.js mein naye words add karne ka time aa gaya
+
+  Important: game is cron par DEPEND NAHI karta. 30 din aage tak answers
+  pehle se DB mein hain, to cron kuch din fail ho jaaye tab bhi game
+  chalta rahega. Logs mein error dikhe to fix karo, panic nahi.
+
+  Manually chalana : netlify functions:invoke publish-puzzle --no-identity
+                     ya local se: npm run seed-db
+  Logs             : Netlify dashboard -> Functions -> publish-puzzle
+                     (answers kabhi log nahi hote)
+
+
+--------------------------------------------------------------------------------
+4. NETLIFY FUNCTIONS: KAUN KYA KARTA HAI
+--------------------------------------------------------------------------------
+
+  URL prefix: /.netlify/functions/<name>
+
+  a) GET get-puzzle   (optional: ?date=YYYY-MM-DD)
+     - Puzzle number, date, aaj ki date, next puzzle ka time, serverTime
+     - Answer NAHI bhejta
+     - Page load par call hota hai. Browser server ki date maanta hai,
+       apne computer ki clock nahi (user system date badle to bhi game
+       sahi date dikhata hai)
+
+  b) POST submit-guess
+     Body: { sessionId, guess, puzzleNumber, date }
+     - Rate limit check (30 guesses / 10 min / IP)
+     - Guess 5 letters ka hai? Dictionary mein hai? (nahi to 422 "Not in word list")
+     - Date aur puzzle number match karte hain?
+     - Guess vs answer evaluate -> har letter: correct / present / absent
+     - MongoDB mein session update (kitne tries, jeeta/haara)
+     - Answer sirf game khatam hone par bhejta hai
+     - Purane din ka puzzle (preview) bhi khel sakte ho; uske stats global
+       stats mein count NAHI hote
+     - MongoDB down ho to "stateless" mode: guess check ho jaata hai par
+       server session save nahi hota
+
+  c) GET get-stats
+     - Aaj ke global stats: games started / completed / won, win %,
+       kitne tries mein jeete (distribution)
+     - Personal data nahi; DB fail ho to zero stats bhejta hai (500 nahi)
+
+  d) publish-puzzle  (scheduled, section 3 dekho)
+
+  Answer kahan se aata hai: submit-guess -> _shared/puzzles.js ->
+  resolveAnswer() -> MongoDB puzzles collection (cache hota hai).
+
+  Shared helpers (functions/_shared):
+     words.js, evaluate.js, db.js, rateLimiter.js, time.js, puzzles.js
+     (section 1 dekho)
+     time.js: server google.com ke HTTP "Date" header se asli time leta hai
+     aur 10 minute cache karta hai. Internet na mile to machine ki clock.
+
+
+--------------------------------------------------------------------------------
+5. MONGODB: KYUN USE HO RAHA HAI AUR KYA RAKHA HAI
+--------------------------------------------------------------------------------
+
+  Kyun:
+    - Answer schedule: har din ka answer yahin se aata hai (section 2)
+    - Server-side game state: user browser mein cheat karke tries reset na
+      kar sake. Server yaad rakhta hai kitne guesses hue.
+    - Global stats: sab players ka combined data (win %, distribution)
+
+  Kya NAHI karta:
+    - Koi personal info (naam, email) store nahi hoti.
+
+  Database name: wordora (env: MONGODB_DB_NAME)
+  Connection   : env MONGODB_URI (Netlify env vars / local .env.local)
+
+  Collections:
+
+  (1) puzzles: har din ka ANSWER (source of truth)
+      { puzzleNumber, date, answer,
+        source: 'legacy' (purana formula) | 'scheduler' (naya),
+        published (aaj ya pehle ka din), publishedAt,
+        createdAt, updatedAt }
+      Indexes: puzzleNumber (unique), date (unique)
+      Isme future answers bhi hain: is collection ka access sirf
+      trusted logon ko do.
+
+  (2) gameSessions: har player ka har puzzle ka game
+      { sessionId, puzzleNumber, date, isPreview, guesses: [...],
+        status: 'playing'|'won'|'lost', attemptsUsed,
+        createdAt, expiresAt }
+      - sessionId = browser mein bana random ID (localStorage), login nahi
+      - expiresAt = 48 ghante baad; TTL index se MongoDB khud delete karta hai
+      Indexes: (sessionId + puzzleNumber) unique, expiresAt TTL
+
+  (3) dailyStats: har din ke global counters
+      { date, gamesStarted, gamesCompleted, gamesWon,
+        attemptsDistribution: [1 try, 2, 3, 4, 5, 6], createdAt, updatedAt }
+      Sirf aaj ke official game se update hota hai (preview se nahi)
+      Index: date (unique)
+
+  Indexes kaise bante hain: "npm run seed-db" chalao (ensureIndexes()).
+  Naye database par ye ek baar zaroor chalana. Iske bina 48h auto-delete
+  (TTL) kaam nahi karega.
+
+
+--------------------------------------------------------------------------------
+6. BROWSER (localStorage) MEIN KYA SAVE HOTA HAI
+--------------------------------------------------------------------------------
+
+  wordora_v1        -> current game progress (guesses, board), preview games,
+                       sessionId, settings, "help dekha ya nahi"
+  wordora_stats_v1  -> player ke personal stats (played, win %, streak)
+
+  Page refresh par game wahin se continue hota hai.
+  Browser data clear kiya to personal stats aur progress chale jaate hain.
+
+
+--------------------------------------------------------------------------------
+7. EK GUESS KA POORA FLOW
+--------------------------------------------------------------------------------
+
+  1. Page khula -> app.js -> GET get-puzzle -> server batata hai aaj
+     kaunsi date / puzzle number hai
+  2. localStorage se pichhla progress restore
+  3. User word type karke Enter -> POST submit-guess
+       { sessionId, guess, puzzleNumber, date }
+  4. Server: rate limit -> validation -> words.js se answer ->
+     evaluate.js se colors -> MongoDB gameSessions update ->
+     (official game ho to) dailyStats update
+  5. Response: { results: [colors], attemptsUsed, status, answer (sirf end
+     mein), message }
+  6. Browser tiles flip karta hai, keyboard colors update, localStorage save
+  7. Game khatam -> stats dialog + share + next puzzle countdown
+     (countdown server time se chalta hai, user ki clock se nahi)
+
+
+--------------------------------------------------------------------------------
+8. COMMANDS
+--------------------------------------------------------------------------------
+
+  npm install             Dependencies install
+  npm run dev             Local server -> http://localhost:8888
+                          (frontend + functions dono; .env.local padhta hai)
+  npm test                Saare tests
+  npm run validate-words  Word lists check
+  npm run seed-db         Naye DB / migration: indexes + purane din backfill
+                          + agle 30 din schedule
+                          (SEED_DAYS=60 / DRY_RUN=true env se control)
+  npm run lint            ESLint
+
+  Env variables (.env.example dekho):
+    MONGODB_URI, MONGODB_DB_NAME, SESSION_SECRET, SITE_URL
+    TIME_SOURCE_URL (optional, default https://www.google.com)
+    SCHEDULE_AHEAD_DAYS (optional, default 30)
+
+
+--------------------------------------------------------------------------------
+9. KNOWN ISSUES / DHYAN DENE WALI BAATEIN
+--------------------------------------------------------------------------------
+
+  - Purane system mein words repeat ho rahe the (783 words). Naya
+    scheduler naye words pehle chunta hai, par list mein words add karte
+    rehna hoga (cron warning dega).
+  - Future date ka preview API se JAAN-BOOJH KAR allowed hai (tests bhi
+    ise check karte hain). Browser calendar future date disable karta hai,
+    par koi seedha API call karke aage ka puzzle khel sakta hai aur 6 galat
+    guesses ke baad us din ka scheduled answer dekh sakta hai. Agar ye
+    band karna ho: submit-guess aur get-puzzle mein "date > today" reject
+    karo aur api.test.js / calendar-preview.test.js update karo.
+  - Stateless mode (MongoDB down) mein 6 galat guesses ke baad bhi server
+    status "playing" bhejta hai aur answer nahi deta; browser khud track
+    karta hai.
+  - Rate limiter memory mein hai (har Lambda instance ka alag), isliye
+    strict nahi hai.
+  - 7 tests fail ho rahe hain (107 mein se): evaluate logic, word list aur
+    submit-guess date validation ke. Check karna hai ki code galat hai ya
+    tests purane hain.
+  - Local par cron nahi chalta. Test karne ke liye manual invoke karo
+    (section 3).
+  - .gitignore mein ".env*" hai, jisse .env.example bhi ignore ho jaata hai.
+    Ise "!.env.example" se allow karna chahiye taaki team ko template mile.
+  - mongodb_cred.txt project folder mein hai (gitignored hai). Credentials
+    sirf .env.local / Netlify env mein rakho, ye file share mat karna.
