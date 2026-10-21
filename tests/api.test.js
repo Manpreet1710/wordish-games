@@ -10,7 +10,7 @@
 'use strict';
 
 const { evaluateGuess, isWin, RESULT } = require('../functions/_shared/evaluate');
-const { isValidGuess, getPuzzleNumberForDate, getTodayUTC, getAnswerForPuzzle } = require('../functions/_shared/words');
+const { EPOCH_DATE, isValidGuess, getPuzzleNumberForDate, getTodayUTC, getAnswerForPuzzle } = require('../functions/_shared/words');
 
 // Mock Netlify event helper
 function mockEvent(method, body, headers = {}) {
@@ -87,19 +87,20 @@ describe('GET /get-puzzle', () => {
   });
 
   test('returns historical puzzle metadata when date param provided', async () => {
-    const event = { ...mockEvent('GET', null), queryStringParameters: { date: '2024-01-01' } };
+    const event = { ...mockEvent('GET', null), queryStringParameters: { date: EPOCH_DATE } };
     const response = await handler(event);
     expect(response.statusCode).toBe(200);
     const body = JSON.parse(response.body);
     expect(body.puzzleNumber).toBe(1);
-    expect(body.date).toBe('2024-01-01');
+    expect(body.date).toBe(EPOCH_DATE);
     expect(body.available).toBe(true);
-    expect(body.isPreview).toBe(true);
+    // Epoch is only a preview once launch day has passed
+    expect(body.isPreview).toBe(EPOCH_DATE !== getTodayUTC());
     expect(body).not.toHaveProperty('answer');
   });
 
-  test('returns 404 for dates before epoch (2024-01-01)', async () => {
-    const event = { ...mockEvent('GET', null), queryStringParameters: { date: '2023-12-31' } };
+  test('returns 404 for dates before epoch', async () => {
+    const event = { ...mockEvent('GET', null), queryStringParameters: { date: '2026-10-20' } };
     const response = await handler(event);
     expect(response.statusCode).toBe(404);
     const body = JSON.parse(response.body);
@@ -226,7 +227,7 @@ describe('POST /submit-guess — input validation', () => {
       sessionId: 'preview-session-999',
       guess: 'CRANE',
       puzzleNumber: 1,
-      date: '2024-01-01',
+      date: EPOCH_DATE,
     };
     const event = mockEvent('POST', pastPayload);
     const response = await handler(event);

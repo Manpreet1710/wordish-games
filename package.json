@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "netlify dev",
-    "build": "echo 'No build step for vanilla HTML/CSS/JS'",
+    "build": "rm -rf dist && mkdir dist && cp -R index.html css js dist/",
     "test": "node --experimental-vm-modules node_modules/.bin/jest --testPathPattern=tests/",
     "test:evaluate": "node --experimental-vm-modules node_modules/.bin/jest tests/evaluate.test.js --verbose",
     "test:puzzle": "node --experimental-vm-modules node_modules/.bin/jest tests/puzzle.test.js --verbose",

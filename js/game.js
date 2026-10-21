@@ -24,8 +24,9 @@ export const STATUS = {
 export const MAX_ATTEMPTS = 6;
 export const WORD_LENGTH = 5;
 
-// Epoch for puzzle number calculation
-export const EPOCH = new Date('2024-01-01T00:00:00Z');
+// Launch day = puzzle #1. Keep in sync with EPOCH_DATE in functions/_shared/words.js.
+export const EPOCH_DATE = '2026-10-21';
+export const EPOCH = new Date(EPOCH_DATE + 'T00:00:00Z');
 
 /**
  * Gets today's UTC date string.

@@ -21,7 +21,7 @@ export class CalendarDatePicker {
    * @param {Object} options
    * @param {HTMLElement} options.triggerBtn - Header button that toggles calendar
    * @param {HTMLElement} options.popoverEl - The calendar popover container
-   * @param {string} options.minDate - Epoch date string (YYYY-MM-DD), default '2024-01-01'
+   * @param {string} options.minDate - Epoch date string (YYYY-MM-DD), required (puzzle #1 date)
    * @param {Function} options.getTodayDate - Returns today's UTC date string
    * @param {Function} options.getSelectedDate - Returns currently selected UTC date string
    * @param {Function} options.onSelectDate - Callback(dateStr) when an available date is selected
@@ -30,7 +30,7 @@ export class CalendarDatePicker {
   constructor(options) {
     this.triggerBtn = options.triggerBtn;
     this.popoverEl = options.popoverEl;
-    this.minDate = options.minDate || '2024-01-01';
+    this.minDate = options.minDate;
     this.getTodayDate = options.getTodayDate;
     this.getSelectedDate = options.getSelectedDate;
     this.onSelectDate = options.onSelectDate;

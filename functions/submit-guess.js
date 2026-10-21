@@ -33,7 +33,7 @@
 'use strict';
 
 const { evaluateGuess, isWin, RESULT } = require('./_shared/evaluate');
-const { isValidGuess, getPuzzleNumberForDate, getTodayUTC } = require('./_shared/words');
+const { EPOCH_DATE, isValidGuess, getPuzzleNumberForDate, getTodayUTC } = require('./_shared/words');
 const { resolveAnswer } = require('./_shared/puzzles');
 const { getTrustedNow } = require('./_shared/time');
 const { checkRateLimit, getClientIP } = require('./_shared/rateLimiter');
@@ -126,8 +126,8 @@ exports.handler = async function handler(event) {
     return jsonResponse(400, { error: 'Invalid calendar date' });
   }
 
-  if (date < '2024-01-01') {
-    return jsonResponse(400, { error: 'No puzzle exists before Wordora epoch (2024-01-01)' });
+  if (date < EPOCH_DATE) {
+    return jsonResponse(400, { error: `No puzzle exists before Wordora epoch (${EPOCH_DATE})` });
   }
 
   const expectedPuzzleNumber = getPuzzleNumberForDate(dateObj);
@@ -145,13 +145,16 @@ exports.handler = async function handler(event) {
   // Try to load/create session from MongoDB
   const database = await getDb();
 
-  // Get the authoritative answer for this puzzle (DB schedule, legacy list as fallback)
-  const answer = await resolveAnswer(database, puzzleNumber);
-
   if (database) {
-    return await handleWithDatabase(database, sessionId, normalizedGuess, answer, puzzleNumber, date, isPreview);
+    // Answer lookup (DB schedule, legacy list as fallback) and session load are independent — run together
+    const [answer, session] = await Promise.all([
+      resolveAnswer(database, puzzleNumber),
+      database.collection('gameSessions').findOne({ sessionId, puzzleNumber }),
+    ]);
+    return await handleWithDatabase(database, session, sessionId, normalizedGuess, answer, puzzleNumber, date, isPreview);
   } else {
     // Stateless fallback (no session persistence)
+    const answer = await resolveAnswer(null, puzzleNumber);
     return handleStateless(normalizedGuess, answer);
   }
 };
@@ -159,12 +162,9 @@ exports.handler = async function handler(event) {
 /**
  * Full server-side session tracking with MongoDB.
  */
-async function handleWithDatabase(database, sessionId, guess, answer, puzzleNumber, date, isPreview = false) {
+async function handleWithDatabase(database, session, sessionId, guess, answer, puzzleNumber, date, isPreview = false) {
   const sessions = database.collection('gameSessions');
   const stats = database.collection('dailyStats');
-
-  // Load or create session
-  let session = await sessions.findOne({ sessionId, puzzleNumber });
 
   if (!session) {
     // New session for this puzzle
@@ -222,61 +222,15 @@ async function handleWithDatabase(database, sessionId, guess, answer, puzzleNumb
     session.status = 'lost';
   }
 
-  // Persist session (upsert)
-  await sessions.replaceOne(
-    { sessionId, puzzleNumber },
-    session,
-    { upsert: true }
-  );
-
-  // Update daily stats ONLY for official daily game (preview games NEVER modify official stats)
-  if (!isPreview) {
-    try {
-      const attemptIndex = session.attemptsUsed - 1; // 0-indexed
-
-      // 1. Ensure today's document exists with baseline structure
-      await stats.updateOne(
-        { date },
-        {
-          $setOnInsert: {
-            date,
-            gamesStarted: 0,
-            gamesCompleted: 0,
-            gamesWon: 0,
-            attemptsDistribution: [0, 0, 0, 0, 0, 0],
-            createdAt: new Date(),
-          },
-        },
-        { upsert: true }
-      );
-
-      // 2. Safely increment counters
-      const inc = {};
-      if (session.attemptsUsed === 1) {
-        inc.gamesStarted = 1;
-      }
-      if (session.status === 'won' || session.status === 'lost') {
-        inc.gamesCompleted = 1;
-        if (session.status === 'won') {
-          inc.gamesWon = 1;
-          inc[`attemptsDistribution.${attemptIndex}`] = 1;
-        }
-      }
-
-      if (Object.keys(inc).length > 0) {
-        await stats.updateOne(
-          { date },
-          {
-            $inc: inc,
-            $set: { updatedAt: new Date() },
-          }
-        );
-      }
-    } catch (statsErr) {
-      // Non-fatal — don't fail the request if stats update fails
-      console.error('[submit-guess] Stats update failed:', statsErr.message);
-    }
-  }
+  // Persist session (upsert) and update stats concurrently
+  await Promise.all([
+    sessions.replaceOne(
+      { sessionId, puzzleNumber },
+      session,
+      { upsert: true }
+    ),
+    isPreview ? null : updateDailyStats(stats, session, date),
+  ]);
 
   // Build response
   const gameOver = session.status !== 'playing';
@@ -297,6 +251,59 @@ async function handleWithDatabase(database, sessionId, guess, answer, puzzleNumb
     answer: responseAnswer,
     message,
   });
+}
+
+/**
+ * Updates daily stats for the official daily game (preview games NEVER modify official stats).
+ * Only the first and final guess change any counter, so mid-game guesses skip the DB entirely.
+ * Never throws — a stats failure must not fail the guess.
+ */
+async function updateDailyStats(stats, session, date) {
+  const attemptIndex = session.attemptsUsed - 1; // 0-indexed
+
+  const inc = {};
+  if (session.attemptsUsed === 1) {
+    inc.gamesStarted = 1;
+  }
+  if (session.status === 'won' || session.status === 'lost') {
+    inc.gamesCompleted = 1;
+    if (session.status === 'won') {
+      inc.gamesWon = 1;
+      inc[`attemptsDistribution.${attemptIndex}`] = 1;
+    }
+  }
+
+  if (Object.keys(inc).length === 0) return;
+
+  try {
+    // 1. Ensure today's document exists with baseline structure
+    await stats.updateOne(
+      { date },
+      {
+        $setOnInsert: {
+          date,
+          gamesStarted: 0,
+          gamesCompleted: 0,
+          gamesWon: 0,
+          attemptsDistribution: [0, 0, 0, 0, 0, 0],
+          createdAt: new Date(),
+        },
+      },
+      { upsert: true }
+    );
+
+    // 2. Safely increment counters
+    await stats.updateOne(
+      { date },
+      {
+        $inc: inc,
+        $set: { updatedAt: new Date() },
+      }
+    );
+  } catch (statsErr) {
+    // Non-fatal — don't fail the request if stats update fails
+    console.error('[submit-guess] Stats update failed:', statsErr.message);
+  }
 }
 
 /**

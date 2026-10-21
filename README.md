@@ -9,7 +9,7 @@ A production-ready daily five-letter word guessing game built with vanilla HTML/
 ## Architecture
 
 ```
-Frontend:    Vanilla HTML + CSS + JavaScript (ES Modules, no build step)
+Frontend:    Vanilla HTML + CSS + JavaScript (ES Modules; build only copies static files to dist/)
 Backend:     Netlify Functions (Node.js 18+)
 Database:    MongoDB Atlas (optional — stateless fallback if unavailable)
 Scheduler:   Netlify Scheduled Function (publish-puzzle, runs 0 0 * * * UTC)
@@ -20,7 +20,7 @@ Storage:     Browser localStorage for progress, streaks, settings
 
 1. A deterministic puzzle number is computed from UTC date — no randomness.
 2. **Epoch**: `2024-01-01` UTC = Puzzle #1.
-3. The answer is `ANSWERS[(puzzleNumber - 1) % ANSWERS.length]` — cycles if needed.
+3. Answers are pre-assigned per puzzle in the MongoDB `puzzles` collection (never-used words first). If the DB is unavailable, the legacy `ANSWERS[(puzzleNumber - 1) % ANSWERS.length]` formula is used.
 4. The server **never returns the answer** until the game is over.
 5. A scheduled function at UTC midnight publishes puzzles and creates an audit trail.
 6. If the scheduler fails, the game continues using the word list fallback.
@@ -107,6 +107,9 @@ In **Netlify → Site Settings → Environment Variables**:
 | `MONGODB_DB_NAME` | Database name (default: `wordora`) |
 | `SESSION_SECRET` | Random 32-byte hex string for session signing |
 | `SITE_URL` | Production URL, e.g. `https://wordora.netlify.app` |
+| `TIME_SOURCE_URL` | Optional. Enables clock correction in deployed functions (off by default; only runs under `netlify dev`) |
+
+> **Performance:** set the Netlify Functions region (Site settings → Functions → Region) to match your MongoDB Atlas cluster region. A cross-region setup adds ~200ms to every DB round trip on each guess.
 
 Generate a session secret:
 ```bash

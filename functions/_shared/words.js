@@ -14,6 +14,10 @@ const path = require('path');
 
 const fs = require('fs');
 
+// Launch day = puzzle #1. Keep in sync with EPOCH_DATE in js/game.js.
+const EPOCH_DATE = '2026-10-21';
+const EPOCH = new Date(EPOCH_DATE + 'T00:00:00Z');
+
 /**
  * Loads data file either via static require (for esbuild bundling)
  * or by resolving relative candidate paths at runtime.
@@ -128,13 +132,12 @@ function getAnswerForPuzzle(puzzleNumber) {
 /**
  * Returns today's puzzle number based on UTC date.
  * 
- * Epoch: 2024-01-01 UTC = puzzle #1
+ * Epoch: EPOCH_DATE (2026-10-21) UTC = puzzle #1
  * 
  * @param {Date} [now] - Optional date for testing
  * @returns {number} Puzzle number (1-indexed)
  */
 function getPuzzleNumberForDate(now) {
-  const EPOCH = new Date('2024-01-01T00:00:00Z');
   const date = now instanceof Date ? now : new Date();
   
   // Use UTC components to get UTC calendar day
@@ -157,7 +160,6 @@ function getPuzzleNumberForDate(now) {
  * @returns {string} UTC date string
  */
 function getDateForPuzzleNumber(puzzleNumber) {
-  const EPOCH = new Date('2024-01-01T00:00:00Z');
   const date = new Date(EPOCH.getTime() + (puzzleNumber - 1) * 24 * 60 * 60 * 1000);
   return date.toISOString().split('T')[0];
 }
@@ -174,6 +176,7 @@ function getTodayUTC(now) {
 }
 
 module.exports = {
+  EPOCH_DATE,
   getAnswers,
   getValidGuesses,
   isValidGuess,

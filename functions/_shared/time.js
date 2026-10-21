@@ -9,6 +9,7 @@
  * - Offset is cached per Lambda instance for OFFSET_TTL_MS, so most calls make no network request.
  * - Any failure (offline, timeout, bad header) falls back to the local clock.
  * - Skipped under Jest (NODE_ENV=test) so tests never hit the network.
+ * - Skipped in deployed functions (only runs under `netlify dev`, or when TIME_SOURCE_URL is set).
  */
 
 'use strict';
@@ -53,6 +54,9 @@ async function fetchClockOffset() {
  */
 async function getTrustedNow() {
   if (process.env.NODE_ENV === 'test') return new Date();
+  // Deployed Lambdas have an NTP-synced clock; only `netlify dev` needs correcting.
+  // Skipping the network check in prod saves up to FETCH_TIMEOUT_MS per cold start.
+  if (process.env.NETLIFY_DEV !== 'true' && !process.env.TIME_SOURCE_URL) return new Date();
 
   const localNow = Date.now();
   const cacheAge = Math.abs(localNow + cachedOffsetMs - offsetFetchedAt);

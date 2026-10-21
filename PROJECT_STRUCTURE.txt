@@ -8,7 +8,8 @@ Wordora ek daily word game hai (Wordle jaisa): har din ek 5-letter word,
 6 tries. Pure duniya mein sabko ek din mein same puzzle milta hai.
 
 Tech stack:
-  - Frontend : Plain HTML / CSS / JavaScript (koi framework ya build step nahi)
+  - Frontend : Plain HTML / CSS / JavaScript (koi framework nahi; build sirf
+               index.html, css/, js/ ko dist/ mein copy karta hai)
   - Backend  : Netlify Functions (Node.js serverless functions)
   - Database : MongoDB Atlas
   - Hosting  : Netlify
@@ -40,7 +41,7 @@ Tech stack:
       evaluate.js         Guess vs answer compare (green / yellow / grey)
       db.js               MongoDB connection + indexes
       rateLimiter.js      Spam rokna: 1 IP se 10 minute mein max 30 guesses
-      time.js             Trusted time: internet se asli time (system clock nahi)
+      time.js             Server time (local dev mein clock correct karta hai)
       puzzles.js          Answer schedule: DB se answer, aage ke din schedule karna
 
   data/
@@ -52,6 +53,8 @@ Tech stack:
     validate-words.js     Word lists check karta hai (deploy se pehle chalao)
 
   tests/                  Jest tests
+  dist/                   Build output (npm run build), Netlify sirf yahi publish
+                          karta hai. data/, functions/, credentials serve NAHI hote
   netlify.toml            Netlify config: functions, cron schedule, headers
   .env.local              Local secrets (MONGODB_URI etc.), git mein NAHI jaata
 
@@ -63,10 +66,13 @@ Tech stack:
 Do alag cheezein hain:
 
   (A) PUZZLE NUMBER: formula se (DB nahi)
-      Epoch = 2024-01-01 (UTC) -> Puzzle #1
-      Puzzle number = (aaj ki UTC date - 2024-01-01 ke din) + 1
-      Example: 2026-10-21 -> Puzzle #1025
+      Epoch = 2026-10-21 (UTC, launch day) -> Puzzle #1
+      Puzzle number = (aaj ki UTC date - 2026-10-21 ke din) + 1
+      Example: 2026-10-22 -> Puzzle #2
       Code: functions/_shared/words.js -> getPuzzleNumberForDate()
+      Epoch do jagah hai: EPOCH_DATE in functions/_shared/words.js aur
+      js/game.js. Dono same rakhne hain. Isse pehle ki dates par koi
+      puzzle nahi (calendar band, API 404/400).
       Ye sirf calendar ka hisaab hai, kabhi fail nahi hota.
 
   (B) ANSWER: MongoDB "puzzles" collection se (source of truth)
@@ -84,12 +90,10 @@ Do alag cheezein hain:
        used), taaki repeat jitna ho sake utna door ho
     3. Aage ke 30 din mein koi word repeat nahi hota
 
-  Purane din (2024-01-01 se migration tak):
-    Purane formula ANSWERS[(n-1) % 783] se DB mein backfill kiye gaye,
-    taaki jo word players ne dekha tha wahi rahe (source: 'legacy').
-    Note: list 783 words ki thi, isliye 2026-02-22 (#784) se purane
-    system mein words repeat ho rahe the. Naye system mein naye words add
-    karoge to wo pehle chune jaayenge.
+  Launch day (#1, 2026-10-21):
+    seed-db / cron ise purane formula ANSWERS[(n-1) % length] se bharte
+    hain (source: 'legacy'), yaani ANSWERS[0]. #2 se aage scheduler
+    chunta hai (never-used words pehle).
 
   Fallback: MongoDB down ho ya kisi din ka record na mile to purana
   formula use hota hai (log mein error aata hai). Words add karne ke baad
@@ -180,8 +184,11 @@ Do alag cheezein hain:
   Shared helpers (functions/_shared):
      words.js, evaluate.js, db.js, rateLimiter.js, time.js, puzzles.js
      (section 1 dekho)
-     time.js: server google.com ke HTTP "Date" header se asli time leta hai
-     aur 10 minute cache karta hai. Internet na mile to machine ki clock.
+     time.js: deployed functions mein seedha server ki clock (Lambda ki clock
+     NTP-synced hoti hai, extra network call nahi). Sirf `netlify dev` mein
+     (ya TIME_SOURCE_URL set ho to) google.com ke HTTP "Date" header se time
+     leta hai aur 10 minute cache karta hai, taaki system date badalne par
+     bhi local game sahi chale. Internet na mile to machine ki clock.
 
 
 --------------------------------------------------------------------------------
@@ -251,9 +258,12 @@ Do alag cheezein hain:
   2. localStorage se pichhla progress restore
   3. User word type karke Enter -> POST submit-guess
        { sessionId, guess, puzzleNumber, date }
-  4. Server: rate limit -> validation -> words.js se answer ->
-     evaluate.js se colors -> MongoDB gameSessions update ->
-     (official game ho to) dailyStats update
+  4. Server: rate limit -> validation -> dictionary check ->
+     MongoDB se answer (puzzles.js) + session load, dono saath mein ->
+     evaluate.js se colors -> gameSessions save + dailyStats update,
+     dono saath mein. dailyStats sirf pehle guess aur game khatam hone par
+     update hota hai (official game ho to); beech ke guesses mein skip.
+     Normal guess = MongoDB ke 2 round trips
   5. Response: { results: [colors], attemptsUsed, status, answer (sirf end
      mein), message }
   6. Browser tiles flip karta hai, keyboard colors update, localStorage save
@@ -273,11 +283,16 @@ Do alag cheezein hain:
   npm run seed-db         Naye DB / migration: indexes + purane din backfill
                           + agle 30 din schedule
                           (SEED_DAYS=60 / DRY_RUN=true env se control)
+                          RESET=true: pehle puzzles, gameSessions, dailyStats
+                          khaali karta hai (epoch badalne par). Pehle
+                          DRY_RUN=true ke saath chala ke dekho
   npm run lint            ESLint
 
   Env variables (.env.example dekho):
     MONGODB_URI, MONGODB_DB_NAME, SESSION_SECRET, SITE_URL
-    TIME_SOURCE_URL (optional, default https://www.google.com)
+    TIME_SOURCE_URL (optional; set karne par deployed functions mein bhi
+                     clock correction chalega. Default sirf netlify dev mein
+                     https://www.google.com)
     SCHEDULE_AHEAD_DAYS (optional, default 30)
 
 
@@ -304,7 +319,9 @@ Do alag cheezein hain:
     tests purane hain.
   - Local par cron nahi chalta. Test karne ke liye manual invoke karo
     (section 3).
-  - .gitignore mein ".env*" hai, jisse .env.example bhi ignore ho jaata hai.
-    Ise "!.env.example" se allow karna chahiye taaki team ko template mile.
+  - Guess speed: Netlify functions ka region aur MongoDB Atlas cluster ka
+    region same rakho (Netlify -> Site settings -> Functions -> Region).
+    Alag region mein har DB call pe ~200ms extra lagta hai. Cold start
+    par pehla guess ~1-2s le sakta hai (naya Atlas connection).
   - mongodb_cred.txt project folder mein hai (gitignored hai). Credentials
     sirf .env.local / Netlify env mein rakho, ye file share mat karna.

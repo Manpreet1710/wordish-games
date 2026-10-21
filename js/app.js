@@ -27,6 +27,7 @@ import {
   STATUS,
   WORD_LENGTH,
   MAX_ATTEMPTS,
+  EPOCH_DATE,
 } from './game.js';
 
 import {
@@ -134,7 +135,7 @@ async function init() {
     calendar = new CalendarDatePicker({
       triggerBtn,
       popoverEl,
-      minDate: '2024-01-01',
+      minDate: EPOCH_DATE,
       getTodayDate: () => state.todayDate,
       getSelectedDate: () => state.date,
       onSelectDate: (selectedDate) => {
@@ -239,7 +240,7 @@ async function switchToDate(targetDate) {
     showPreviewBanner(state.date);
     loadActivePuzzle();
   } catch (err) {
-    if (targetDate >= '2024-01-01') {
+    if (targetDate >= EPOCH_DATE) {
       state.isPreview = true;
       state.date = targetDate;
       state.puzzleNumber = getPuzzleNumberForDate(targetDate);

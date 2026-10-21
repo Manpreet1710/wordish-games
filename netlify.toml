@@ -1,5 +1,7 @@
 [build]
-  publish = "."
+  # Only the static frontend is published; everything else (data/, functions/,
+  # scripts/, credentials) must never be served. `npm run build` creates dist/.
+  publish = "dist"
   functions = "functions"
   command = "npm run build"
 

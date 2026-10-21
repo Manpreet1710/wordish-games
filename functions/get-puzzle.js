@@ -20,7 +20,7 @@
 
 'use strict';
 
-const { getPuzzleNumberForDate, getTodayUTC } = require('./_shared/words');
+const { EPOCH_DATE, getPuzzleNumberForDate, getTodayUTC } = require('./_shared/words');
 const { getTrustedNow } = require('./_shared/time');
 
 const RULES_VERSION = 1;
@@ -74,12 +74,12 @@ exports.handler = async function handler(event) {
       return jsonResponse(400, { error: 'Invalid calendar date' });
     }
 
-    // Epoch check (Wordora started 2024-01-01)
-    if (requestedDate < '2024-01-01') {
+    // Epoch check (puzzle #1 = EPOCH_DATE)
+    if (requestedDate < EPOCH_DATE) {
       return jsonResponse(404, {
         available: false,
         status: 'unavailable',
-        error: 'No puzzle exists before Wordora epoch (2024-01-01)',
+        error: `No puzzle exists before Wordora epoch (${EPOCH_DATE})`,
       });
     }
 

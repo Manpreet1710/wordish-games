@@ -11,16 +11,16 @@ const {
 } = require('../functions/_shared/words');
 
 describe('Calendar Date Navigation & UTC Calculations', () => {
-  test('correctly handles month boundaries (March 1 after February 29 in leap year 2024)', () => {
-    const leapDay = new Date('2024-02-29T00:00:00Z');
-    const march1 = new Date('2024-03-01T00:00:00Z');
+  test('correctly handles month boundaries (March 1 after February 29 in leap year 2028)', () => {
+    const leapDay = new Date('2028-02-29T00:00:00Z');
+    const march1 = new Date('2028-03-01T00:00:00Z');
     
     expect(getPuzzleNumberForDate(march1)).toBe(getPuzzleNumberForDate(leapDay) + 1);
   });
 
-  test('correctly handles non-leap year (February 2025 has 28 days)', () => {
-    const feb28 = new Date('2025-02-28T00:00:00Z');
-    const march1 = new Date('2025-03-01T00:00:00Z');
+  test('correctly handles non-leap year (February 2027 has 28 days)', () => {
+    const feb28 = new Date('2027-02-28T00:00:00Z');
+    const march1 = new Date('2027-03-01T00:00:00Z');
     
     // Day difference is exactly 1
     expect(getPuzzleNumberForDate(march1) - getPuzzleNumberForDate(feb28)).toBe(1);
@@ -56,7 +56,7 @@ describe('Calendar Date Navigation & UTC Calculations', () => {
 });
 
 describe('Date Availability Rules', () => {
-  const EPOCH_DATE = '2024-01-01';
+  const EPOCH_DATE = '2026-10-21';
   const today = getTodayUTC();
 
   function isDateAvailable(dateStr) {
@@ -64,16 +64,16 @@ describe('Date Availability Rules', () => {
     return true;
   }
 
-  test('epoch date 2024-01-01 is available', () => {
-    expect(isDateAvailable('2024-01-01')).toBe(true);
+  test('epoch date 2026-10-21 is available', () => {
+    expect(isDateAvailable('2026-10-21')).toBe(true);
   });
 
   test('today is available', () => {
     expect(isDateAvailable(today)).toBe(true);
   });
 
-  test('date before epoch (e.g. 2023-12-31) is unavailable', () => {
-    expect(isDateAvailable('2023-12-31')).toBe(false);
+  test('date before epoch (e.g. 2026-10-20) is unavailable', () => {
+    expect(isDateAvailable('2026-10-20')).toBe(false);
   });
 
   test('future preview date is available for preview play', () => {

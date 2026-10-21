@@ -1,6 +1,8 @@
 # .gitignore for Wordora
 node_modules/
+dist/
 .env*
+!.env.example
 .env.local
 .env
 mongodb_cred.txt

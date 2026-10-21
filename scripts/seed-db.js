@@ -58,6 +58,8 @@ const { getTrustedNow } = require('../functions/_shared/time');
 
 const SEED_DAYS = parseInt(process.env.SEED_DAYS || '30', 10);
 const DRY_RUN = process.env.DRY_RUN === 'true';
+// Wipes puzzles, gameSessions and dailyStats before seeding (e.g. after an epoch change)
+const RESET = process.env.RESET === 'true';
 
 async function main() {
   console.log('\n╔════════════════════════════════════╗');
@@ -76,6 +78,18 @@ async function main() {
   console.log('Connecting to MongoDB...');
   const { db, client } = await connectToDatabase();
   console.log('✓ Connected\n');
+
+  if (RESET) {
+    for (const name of ['puzzles', 'gameSessions', 'dailyStats']) {
+      if (DRY_RUN) {
+        console.log(`Would delete ${await db.collection(name).countDocuments()} docs from ${name}`);
+      } else {
+        const { deletedCount } = await db.collection(name).deleteMany({});
+        console.log(`✓ Deleted ${deletedCount} docs from ${name}`);
+      }
+    }
+    console.log('');
+  }
 
   if (!DRY_RUN) {
     console.log('Creating indexes...');
