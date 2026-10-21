@@ -105,6 +105,13 @@ describe('getTodayUTC', () => {
 });
 
 describe('getAnswerForPuzzle', () => {
+  test('legacy fallback is keyed by date (matches answers shown before the epoch change)', () => {
+    const answers = getAnswers();
+    // 2026-10-21 was puzzle #1025 under the 2024-01-01 epoch
+    expect(getAnswerForPuzzle(getPuzzleNumberForDate(new Date('2026-10-21T00:00:00Z'))))
+      .toBe(answers[1024 % answers.length]);
+  });
+
   test('returns a 5-letter uppercase string', () => {
     const answer = getAnswerForPuzzle(1);
     expect(answer).toMatch(/^[A-Z]{5}$/);

@@ -72,7 +72,14 @@ Do alag cheezein hain:
       Code: functions/_shared/words.js -> getPuzzleNumberForDate()
       Epoch do jagah hai: EPOCH_DATE in functions/_shared/words.js aur
       js/game.js. Dono same rakhne hain. Isse pehle ki dates par koi
-      puzzle nahi (calendar band, API 404/400).
+      puzzle nahi (calendar band, API 404/400). Unke DB records
+      puzzleNumber <= 0 ke saath rehte hain (word history ke liye).
+
+      NIYAM: Jis date ka jo word hai wo HAMESHA wahi rahega. Answer DB se
+      DATE se dhoondha jaata hai (puzzleNumber se nahi), aur fallback
+      formula bhi date se chalta hai. Epoch badla to answers nahi
+      badalte, sirf numbering. Uske baad scripts/migrate-epoch.js
+      chalao taaki DB ki numbering bhi match kare.
       Ye sirf calendar ka hisaab hai, kabhi fail nahi hota.
 
   (B) ANSWER: MongoDB "puzzles" collection se (source of truth)
@@ -283,9 +290,11 @@ Do alag cheezein hain:
   npm run seed-db         Naye DB / migration: indexes + purane din backfill
                           + agle 30 din schedule
                           (SEED_DAYS=60 / DRY_RUN=true env se control)
-                          RESET=true: pehle puzzles, gameSessions, dailyStats
-                          khaali karta hai (epoch badalne par). Pehle
-                          DRY_RUN=true ke saath chala ke dekho
+  node scripts/migrate-epoch.js
+                          EPOCH_DATE badalne ke BAAD chalao: puzzles aur
+                          gameSessions ke puzzleNumber date se dobara nikalta
+                          hai. Answer / date kabhi nahi badalta, pehle
+                          backups/ mein backup leta hai. Pehle DRY_RUN=true
   npm run lint            ESLint
 
   Env variables (.env.example dekho):

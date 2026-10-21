@@ -18,7 +18,7 @@ const { getAnswers, getAnswerForPuzzle: getLegacyAnswer, getDateForPuzzleNumber 
 const SCHEDULE_AHEAD_DAYS = parseInt(process.env.SCHEDULE_AHEAD_DAYS || '30', 10);
 const BACKFILL_BATCH_SIZE = 500;
 
-// puzzleNumber -> answer. Assigned answers are immutable, so caching per instance is safe.
+// date -> answer. Assigned answers are immutable, so caching per instance is safe.
 const answerCache = new Map();
 
 /**
@@ -29,16 +29,18 @@ const answerCache = new Map();
  * @returns {Promise<string>} Uppercase 5-letter answer
  */
 async function resolveAnswer(db, puzzleNumber) {
-  if (answerCache.has(puzzleNumber)) return answerCache.get(puzzleNumber);
+  // Looked up by DATE, the permanent key: a day's answer must never change, even if numbering does
+  const date = getDateForPuzzleNumber(puzzleNumber);
+  if (answerCache.has(date)) return answerCache.get(date);
 
   if (db) {
     try {
       const doc = await db.collection('puzzles').findOne(
-        { puzzleNumber },
+        { date },
         { projection: { answer: 1 } }
       );
       if (doc && doc.answer) {
-        answerCache.set(puzzleNumber, doc.answer);
+        answerCache.set(date, doc.answer);
         return doc.answer;
       }
       console.error(`[puzzles] No scheduled answer for puzzle #${puzzleNumber}; using legacy word list`);
@@ -63,11 +65,13 @@ async function resolveAnswer(db, puzzleNumber) {
 async function backfillHistory(db, upToPuzzleNumber, { dryRun = false } = {}) {
   const puzzles = db.collection('puzzles');
 
-  const existingCount = await puzzles.countDocuments({ puzzleNumber: { $lte: upToPuzzleNumber } });
+  // Days before EPOCH_DATE keep puzzleNumber <= 0 (see scripts/migrate-epoch.js) and are not part of the range
+  const range = { puzzleNumber: { $gte: 1, $lte: upToPuzzleNumber } };
+  const existingCount = await puzzles.countDocuments(range);
   if (existingCount >= upToPuzzleNumber) return { missing: 0, inserted: 0 };
 
   const existing = new Set(
-    (await puzzles.find({ puzzleNumber: { $lte: upToPuzzleNumber } }, { projection: { puzzleNumber: 1 } }).toArray())
+    (await puzzles.find(range, { projection: { puzzleNumber: 1 } }).toArray())
       .map(d => d.puzzleNumber)
   );
 

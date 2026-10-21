@@ -10,3 +10,4 @@ mongodb_cred.txt
 *.log
 .DS_Store
 
+backups/

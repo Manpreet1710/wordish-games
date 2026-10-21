@@ -18,6 +18,10 @@ const fs = require('fs');
 const EPOCH_DATE = '2026-10-01';
 const EPOCH = new Date(EPOCH_DATE + 'T00:00:00Z');
 
+// The legacy formula counted days from here. Kept so the fallback matches the answers already shown.
+const LEGACY_EPOCH = new Date('2024-01-01T00:00:00Z');
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 /**
  * Loads data file either via static require (for esbuild bundling)
  * or by resolving relative candidate paths at runtime.
@@ -113,7 +117,8 @@ function isValidGuess(word) {
 }
 
 /**
- * LEGACY answer formula: ANSWERS[(puzzleNumber - 1) % length].
+ * LEGACY answer formula: ANSWERS[days since 2024-01-01 % length], keyed by the puzzle's DATE
+ * so it never shifts when EPOCH_DATE changes.
  * The live answer comes from the MongoDB schedule (see _shared/puzzles.js);
  * this is only used to backfill history and as a fallback when the DB is down.
  * 
@@ -125,7 +130,8 @@ function getAnswerForPuzzle(puzzleNumber) {
   if (!Number.isInteger(puzzleNumber) || puzzleNumber < 1) {
     throw new RangeError(`Invalid puzzle number: ${puzzleNumber}`);
   }
-  const index = (puzzleNumber - 1) % answers.length;
+  const date = new Date(EPOCH.getTime() + (puzzleNumber - 1) * DAY_MS);
+  const index = Math.round((date - LEGACY_EPOCH) / DAY_MS) % answers.length;
   return answers[index];
 }
 

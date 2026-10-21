@@ -6,7 +6,7 @@
 
 'use strict';
 
-const { getAnswerForPuzzle, getAnswers } = require('../functions/_shared/words');
+const { getAnswerForPuzzle, getAnswers, getDateForPuzzleNumber } = require('../functions/_shared/words');
 
 /**
  * In-memory fake of the subset of the MongoDB API used by puzzles.js.
@@ -172,7 +172,18 @@ describe('scheduleUpcoming', () => {
 describe('resolveAnswer', () => {
   test('returns the scheduled answer from the DB', async () => {
     const { resolveAnswer } = loadPuzzles();
-    const { db } = createFakeDb([{ puzzleNumber: 42, answer: 'MANUL' }]);
+    const { db } = createFakeDb([{ puzzleNumber: 42, date: getDateForPuzzleNumber(42), answer: 'MANUL' }]);
+
+    expect(await resolveAnswer(db, 42)).toBe('MANUL');
+  });
+
+  test('looks the answer up by date, not puzzle number', async () => {
+    const { resolveAnswer } = loadPuzzles();
+    // Record still numbered under an older epoch: the date decides
+    const { db } = createFakeDb([
+      { puzzleNumber: 42, date: '2024-02-11', answer: 'WRONG' },
+      { puzzleNumber: 1066, date: getDateForPuzzleNumber(42), answer: 'MANUL' },
+    ]);
 
     expect(await resolveAnswer(db, 42)).toBe('MANUL');
   });
