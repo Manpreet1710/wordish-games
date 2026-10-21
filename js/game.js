@@ -25,7 +25,7 @@ export const MAX_ATTEMPTS = 6;
 export const WORD_LENGTH = 5;
 
 // Launch day = puzzle #1. Keep in sync with EPOCH_DATE in functions/_shared/words.js.
-export const EPOCH_DATE = '2026-10-21';
+export const EPOCH_DATE = '2026-10-01';
 export const EPOCH = new Date(EPOCH_DATE + 'T00:00:00Z');
 
 /**

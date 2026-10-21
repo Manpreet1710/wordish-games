@@ -66,9 +66,9 @@ Tech stack:
 Do alag cheezein hain:
 
   (A) PUZZLE NUMBER: formula se (DB nahi)
-      Epoch = 2026-10-21 (UTC, launch day) -> Puzzle #1
-      Puzzle number = (aaj ki UTC date - 2026-10-21 ke din) + 1
-      Example: 2026-10-22 -> Puzzle #2
+      Epoch = 2026-10-01 (UTC) -> Puzzle #1
+      Puzzle number = (aaj ki UTC date - 2026-10-01 ke din) + 1
+      Example: 2026-10-21 -> Puzzle #21
       Code: functions/_shared/words.js -> getPuzzleNumberForDate()
       Epoch do jagah hai: EPOCH_DATE in functions/_shared/words.js aur
       js/game.js. Dono same rakhne hain. Isse pehle ki dates par koi
@@ -90,9 +90,9 @@ Do alag cheezein hain:
        used), taaki repeat jitna ho sake utna door ho
     3. Aage ke 30 din mein koi word repeat nahi hota
 
-  Launch day (#1, 2026-10-21):
-    seed-db / cron ise purane formula ANSWERS[(n-1) % length] se bharte
-    hain (source: 'legacy'), yaani ANSWERS[0]. #2 se aage scheduler
+  Shuru ke din (#1-#21, 2026-10-01 se 2026-10-21):
+    seed-db / cron inhe purane formula ANSWERS[(n-1) % length] se bharte
+    hain (source: 'legacy'), yaani ANSWERS[0..20]. Aage ke din scheduler
     chunta hai (never-used words pehle).
 
   Fallback: MongoDB down ho ya kisi din ka record na mile to purana

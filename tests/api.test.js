@@ -100,7 +100,7 @@ describe('GET /get-puzzle', () => {
   });
 
   test('returns 404 for dates before epoch', async () => {
-    const event = { ...mockEvent('GET', null), queryStringParameters: { date: '2026-10-20' } };
+    const event = { ...mockEvent('GET', null), queryStringParameters: { date: '2026-09-30' } };
     const response = await handler(event);
     expect(response.statusCode).toBe(404);
     const body = JSON.parse(response.body);

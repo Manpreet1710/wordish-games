@@ -15,7 +15,7 @@ const path = require('path');
 const fs = require('fs');
 
 // Launch day = puzzle #1. Keep in sync with EPOCH_DATE in js/game.js.
-const EPOCH_DATE = '2026-10-21';
+const EPOCH_DATE = '2026-10-01';
 const EPOCH = new Date(EPOCH_DATE + 'T00:00:00Z');
 
 /**
@@ -132,7 +132,7 @@ function getAnswerForPuzzle(puzzleNumber) {
 /**
  * Returns today's puzzle number based on UTC date.
  * 
- * Epoch: EPOCH_DATE (2026-10-21) UTC = puzzle #1
+ * Epoch: EPOCH_DATE (2026-10-01) UTC = puzzle #1
  * 
  * @param {Date} [now] - Optional date for testing
  * @returns {number} Puzzle number (1-indexed)

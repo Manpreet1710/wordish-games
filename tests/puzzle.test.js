@@ -12,8 +12,8 @@ const {
   getAnswers,
 } = require('../functions/_shared/words');
 
-// Epoch: 2026-10-21 = puzzle #1
-const EPOCH = new Date('2026-10-21T00:00:00Z');
+// Epoch: 2026-10-01 = puzzle #1
+const EPOCH = new Date('2026-10-01T00:00:00Z');
 
 describe('getPuzzleNumberForDate', () => {
   test('epoch date = puzzle #1', () => {
@@ -21,23 +21,23 @@ describe('getPuzzleNumberForDate', () => {
   });
 
   test('day after epoch = puzzle #2', () => {
-    const day2 = new Date('2026-10-22T00:00:00Z');
+    const day2 = new Date('2026-10-02T00:00:00Z');
     expect(getPuzzleNumberForDate(day2)).toBe(2);
   });
 
   test('one year later', () => {
-    const oneYear = new Date('2027-10-21T00:00:00Z');
+    const oneYear = new Date('2027-10-01T00:00:00Z');
     // 365 days (no Feb 29 in between)
     expect(getPuzzleNumberForDate(oneYear)).toBe(366);
   });
 
   test('handles UTC midnight correctly', () => {
     // 23:59:59 UTC on day 1 should still be puzzle #1
-    const endOfDay1 = new Date('2026-10-21T23:59:59Z');
+    const endOfDay1 = new Date('2026-10-01T23:59:59Z');
     expect(getPuzzleNumberForDate(endOfDay1)).toBe(1);
     
     // 00:00:00 UTC on day 2 should be puzzle #2
-    const startOfDay2 = new Date('2026-10-22T00:00:00Z');
+    const startOfDay2 = new Date('2026-10-02T00:00:00Z');
     expect(getPuzzleNumberForDate(startOfDay2)).toBe(2);
   });
 
@@ -61,23 +61,23 @@ describe('getPuzzleNumberForDate', () => {
   });
 
   test('minimum puzzle number is 1 (no negative)', () => {
-    const beforeEpoch = new Date('2026-10-20T00:00:00Z');
+    const beforeEpoch = new Date('2026-09-30T00:00:00Z');
     expect(getPuzzleNumberForDate(beforeEpoch)).toBeGreaterThanOrEqual(1);
   });
 });
 
 describe('getDateForPuzzleNumber', () => {
   test('puzzle #1 returns epoch date', () => {
-    expect(getDateForPuzzleNumber(1)).toBe('2026-10-21');
+    expect(getDateForPuzzleNumber(1)).toBe('2026-10-01');
   });
 
   test('puzzle #2 returns day after epoch', () => {
-    expect(getDateForPuzzleNumber(2)).toBe('2026-10-22');
+    expect(getDateForPuzzleNumber(2)).toBe('2026-10-02');
   });
 
   test('round-trips with getPuzzleNumberForDate', () => {
     const testDates = [
-      '2026-10-21', '2026-12-31', '2027-01-01',
+      '2026-10-01', '2026-10-21', '2026-12-31', '2027-01-01',
       '2027-07-04', '2028-02-29', '2030-01-01',
     ];
     for (const dateStr of testDates) {

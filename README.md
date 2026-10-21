@@ -19,7 +19,7 @@ Storage:     Browser localStorage for progress, streaks, settings
 ### How the Daily Puzzle Works
 
 1. A deterministic puzzle number is computed from UTC date — no randomness.
-2. **Epoch**: `2024-01-01` UTC = Puzzle #1.
+2. **Epoch**: `2026-10-01` UTC = Puzzle #1. Defined as `EPOCH_DATE` in `functions/_shared/words.js` and `js/game.js` (keep both in sync).
 3. Answers are pre-assigned per puzzle in the MongoDB `puzzles` collection (never-used words first). If the DB is unavailable, the legacy `ANSWERS[(puzzleNumber - 1) % ANSWERS.length]` formula is used.
 4. The server **never returns the answer** until the game is over.
 5. A scheduled function at UTC midnight publishes puzzles and creates an audit trail.

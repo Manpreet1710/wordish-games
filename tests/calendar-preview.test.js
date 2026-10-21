@@ -56,7 +56,7 @@ describe('Calendar Date Navigation & UTC Calculations', () => {
 });
 
 describe('Date Availability Rules', () => {
-  const EPOCH_DATE = '2026-10-21';
+  const EPOCH_DATE = '2026-10-01';
   const today = getTodayUTC();
 
   function isDateAvailable(dateStr) {
@@ -64,16 +64,16 @@ describe('Date Availability Rules', () => {
     return true;
   }
 
-  test('epoch date 2026-10-21 is available', () => {
-    expect(isDateAvailable('2026-10-21')).toBe(true);
+  test('epoch date 2026-10-01 is available', () => {
+    expect(isDateAvailable('2026-10-01')).toBe(true);
   });
 
   test('today is available', () => {
     expect(isDateAvailable(today)).toBe(true);
   });
 
-  test('date before epoch (e.g. 2026-10-20) is unavailable', () => {
-    expect(isDateAvailable('2026-10-20')).toBe(false);
+  test('date before epoch (e.g. 2026-09-30) is unavailable', () => {
+    expect(isDateAvailable('2026-09-30')).toBe(false);
   });
 
   test('future preview date is available for preview play', () => {

@@ -9,7 +9,7 @@
  * - Normalized to UPPERCASE
  * - No duplicates
  * 
- * Epoch date: 2026-10-21 UTC (puzzle #1)
+ * Epoch date: 2026-10-01 UTC (puzzle #1)
  * Each subsequent calendar day increments the puzzle number.
  * 
  * This is the POOL of words the daily scheduler picks from. The actual answer
@@ -23,7 +23,7 @@
  */
 
 const ANSWERS = [
-  // Puzzle #1 onwards (starting 2026-10-21 UTC)
+  // Puzzle #1 onwards (starting 2026-10-01 UTC)
   "ABOUT", "ABOVE", "ABUSE", "ACTOR", "ACUTE", "ADMIT", "ADOPT", "ADULT",
   "AFTER", "AGAIN", "AGENT", "AGREE", "AHEAD", "ALARM", "ALBUM", "ALERT",
   "ALIKE", "ALIGN", "ALIVE", "ALLEY", "ALLOW", "ALONE", "ALONG", "ALTER",
