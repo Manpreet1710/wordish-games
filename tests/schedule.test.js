@@ -53,11 +53,12 @@ function createFakeDb(initialDocs = []) {
 }
 
 /** Fresh module instance so the answer cache and mocks don't leak between tests. */
-function loadPuzzles({ extraWords = [] } = {}) {
+function loadPuzzles({ extraWords = [], legacyOnly = false } = {}) {
   jest.resetModules();
-  if (extraWords.length) {
+  if (extraWords.length || legacyOnly) {
     const words = require('../functions/_shared/words');
-    const base = words.getAnswers();
+    // legacyOnly: just the original 783 words the legacy formula cycled through
+    const base = legacyOnly ? words.getAnswers().slice(0, 783) : words.getAnswers();
     jest.doMock('../functions/_shared/words', () => ({ ...words, getAnswers: () => [...base, ...extraWords] }));
   }
   return require('../functions/_shared/puzzles');
@@ -108,7 +109,7 @@ describe('scheduleUpcoming', () => {
   const TODAY = 1025;
 
   test('with no new words, continues exactly like the legacy formula', async () => {
-    const { backfillHistory, scheduleUpcoming } = loadPuzzles();
+    const { backfillHistory, scheduleUpcoming } = loadPuzzles({ legacyOnly: true });
     const { db, docs } = createFakeDb();
     await backfillHistory(db, TODAY);
 
@@ -122,7 +123,7 @@ describe('scheduleUpcoming', () => {
 
   test('picks never-used words first and leaves history untouched', async () => {
     const extraWords = ['QUIRK', 'ZESTY'];
-    const { backfillHistory, scheduleUpcoming } = loadPuzzles({ extraWords });
+    const { backfillHistory, scheduleUpcoming } = loadPuzzles({ extraWords, legacyOnly: true });
     const { db, docs } = createFakeDb();
     await backfillHistory(db, TODAY);
     const todayAnswerBefore = docs.get(TODAY).answer;

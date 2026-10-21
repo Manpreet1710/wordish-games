@@ -45,7 +45,7 @@ Tech stack:
       puzzles.js          Answer schedule: DB se answer, aage ke din schedule karna
 
   data/
-    answers.js            ANSWERS: words ka POOL jisme se scheduler chunta hai (783)
+    answers.js            ANSWERS: words ka POOL jisme se scheduler chunta hai (1227)
     valid-guesses.js      VALID_GUESSES: extra words jo guess mein allowed hain
 
   scripts/
@@ -309,9 +309,11 @@ Do alag cheezein hain:
 9. KNOWN ISSUES / DHYAN DENE WALI BAATEIN
 --------------------------------------------------------------------------------
 
-  - Purane system mein words repeat ho rahe the (783 words). Naya
-    scheduler naye words pehle chunta hai, par list mein words add karte
-    rehna hoga (cron warning dega).
+  - Purane system mein words repeat ho rahe the (783 words). 2026-10-21 ko
+    444 naye words add kiye (shuffled), jo 2026-11-21 se aane shuru honge,
+    lagbhag 2028-02 tak chalenge. Uske baad aur words add karne honge
+    (cron warning dega). DB-down fallback formula hamesha pehle 783 words
+    par hi chalta hai, isliye words add karne se purane din nahi badalte.
   - Future date ka preview API se JAAN-BOOJH KAR allowed hai (tests bhi
     ise check karte hain). Browser calendar future date disable karta hai,
     par koi seedha API call karke aage ka puzzle khel sakta hai aur 6 galat

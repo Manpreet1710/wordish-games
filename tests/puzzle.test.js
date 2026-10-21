@@ -109,7 +109,7 @@ describe('getAnswerForPuzzle', () => {
     const answers = getAnswers();
     // 2026-10-21 was puzzle #1025 under the 2024-01-01 epoch
     expect(getAnswerForPuzzle(getPuzzleNumberForDate(new Date('2026-10-21T00:00:00Z'))))
-      .toBe(answers[1024 % answers.length]);
+      .toBe(answers[1024 % 783]);
   });
 
   test('returns a 5-letter uppercase string', () => {
@@ -131,11 +131,8 @@ describe('getAnswerForPuzzle', () => {
     expect(first10.size).toBeGreaterThan(1);
   });
 
-  test('cycles through answer list beyond list length', () => {
-    const answers = getAnswers();
-    const len = answers.length;
-    // Puzzle at len+1 should cycle back to first answer
-    expect(getAnswerForPuzzle(len + 1)).toBe(getAnswerForPuzzle(1));
+  test('cycles through the original 783 answers (appended words never change it)', () => {
+    expect(getAnswerForPuzzle(783 + 1)).toBe(getAnswerForPuzzle(1));
   });
 
   test('throws on invalid puzzle number', () => {
